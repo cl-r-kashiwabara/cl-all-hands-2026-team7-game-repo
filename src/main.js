@@ -15,7 +15,8 @@ const ASSET_PATHS = {
   background: "/assets/backgrounds/11317783i.png",
   typhoon01: "/assets/enemies/taihu01.png",
   typhoon02: "/assets/enemies/taihu02.png",
-  playerBase: "/assets/bases/miyakojima_base.png",
+  enemyBase: "/assets/enemies/taifu_base.png",
+  playerBase: "/assets/bases/miyako.png",
   bgm: "/assets/sounds/bgm/沖縄風BGM.mp3",
 };
 
@@ -132,16 +133,17 @@ const CHARACTER_TYPES = [
         path: "/assets/sounds/characters/jumatsu_action.m4a",
       },
     },
-    cost: 240,
+    cost: 600,
     cooldown: 5200,
-    hp: 120,
-    damage: 20,
+    hp: 9999,
+    damage: 9999,
     range: 86,
     attackRate: 1350,
     speed: 28,
     color: 0xf9a8d4,
     aura: 90,
-    description: "低火力・支援",
+    oneShot: true,
+    description: "一撃必殺・高耐久",
   },
 ];
 
@@ -241,6 +243,8 @@ class LaneBattleScene extends Phaser.Scene {
     this.load.image("background", ASSET_PATHS.background);
     this.load.image("typhoon01", ASSET_PATHS.typhoon01);
     this.load.image("typhoon02", ASSET_PATHS.typhoon02);
+    this.load.image("enemyBase", ASSET_PATHS.enemyBase);
+    this.load.image("playerBase", ASSET_PATHS.playerBase);
   }
 
   create() {
@@ -260,7 +264,7 @@ class LaneBattleScene extends Phaser.Scene {
   setupBackgroundMusic() {
     this.bgm = new Audio(ASSET_PATHS.bgm);
     this.bgm.loop = true;
-    this.bgm.volume = 0.35;
+    this.bgm.volume = 0.12;
 
     const startBgm = () => {
       if (!this.bgm || !this.bgm.paused) {
@@ -305,35 +309,32 @@ class LaneBattleScene extends Phaser.Scene {
     }
 
     this.enemyBase = this.add.container(ENEMY_BASE_X, GROUND_Y - 80);
-    const eye = this.add.circle(0, 0, 44, 0x7e22ce);
-    eye.setStrokeStyle(5, 0xe9d5ff);
-    const swirl = this.add.text(0, -28, "台風7号\n(メーカラー)", {
-      fontSize: "15px",
+    const enemyBaseImage = this.add.image(0, 0, "enemyBase");
+    enemyBaseImage.setDisplaySize(126, 126);
+    const swirl = this.add.text(0, -78, "台風7号", {
+      fontSize: "18px",
       color: "#ffffff",
       align: "center",
       fontStyle: "bold",
+      stroke: "#0f172a",
+      strokeThickness: 4,
     });
-    swirl.setOrigin(0.5, 0);
-    this.enemyBase.add([eye, swirl]);
+    swirl.setOrigin(0.5);
+    this.enemyBase.add([enemyBaseImage, swirl]);
 
     this.playerBase = this.add.container(PLAYER_BASE_X, GROUND_Y - 88);
-    if (this.textures.exists("playerBase")) {
-      const baseImage = this.add.image(0, 0, "playerBase");
-      baseImage.setDisplaySize(126, 126);
-      this.playerBase.add(baseImage);
-    } else {
-      const island = this.add.rectangle(0, 28, 112, 78, 0xfef3c7);
-      island.setStrokeStyle(5, 0xf97316);
-      const roof = this.add.triangle(0, -24, -64, 26, 0, -56, 64, 26, 0x0ea5e9);
-      const label = this.add.text(0, 0, "宮古島\n陣地", {
-        fontSize: "18px",
-        color: "#78350f",
-        align: "center",
-        fontStyle: "bold",
-      });
-      label.setOrigin(0.5);
-      this.playerBase.add([island, roof, label]);
-    }
+    const baseImage = this.add.image(0, 0, "playerBase");
+    baseImage.setDisplaySize(136, 112);
+    const baseLabel = this.add.text(0, -76, "宮古島", {
+      fontSize: "20px",
+      color: "#ffffff",
+      align: "center",
+      fontStyle: "bold",
+      stroke: "#0f172a",
+      strokeThickness: 4,
+    });
+    baseLabel.setOrigin(0.5);
+    this.playerBase.add([baseImage, baseLabel]);
 
     this.enemyBaseHpBar = this.makeHpBar(ENEMY_BASE_X, GROUND_Y - 148, 150, 10);
     this.playerBaseHpBar = this.makeHpBar(PLAYER_BASE_X, GROUND_Y - 160, 170, 10);
@@ -389,7 +390,8 @@ class LaneBattleScene extends Phaser.Scene {
       const bg = this.add.rectangle(0, 0, 124, 90, 0x1f2937);
       bg.setStrokeStyle(2, type.color);
       const portrait = this.makePortrait(type, 0, -23, 15);
-      const name = this.add.text(0, -2, type.name, {
+      const menuName = type.id === "medic" ? "??" : type.name;
+      const name = this.add.text(0, -2, menuName, {
         fontSize: "14px",
         color: "#f8fafc",
         fontStyle: "bold",
@@ -407,15 +409,14 @@ class LaneBattleScene extends Phaser.Scene {
       role.setOrigin(0.5);
       const cooldownMask = this.add.rectangle(0, 0, 124, 90, 0x020617, 0.64);
       cooldownMask.setVisible(false);
-      card.add([bg, portrait, name, cost, role, cooldownMask]);
+      const clickLayer = this.add.rectangle(0, 0, 124, 90, 0xffffff, 0.001);
+      clickLayer.setInteractive({ useHandCursor: true });
+      clickLayer.on("pointerdown", () => this.tryDeployById(type.id));
+      card.add([bg, portrait, name, cost, role, cooldownMask, clickLayer]);
       card.setSize(124, 90);
-      card.setInteractive(
-        new Phaser.Geom.Rectangle(-62, -45, 124, 90),
-        Phaser.Geom.Rectangle.Contains,
-      );
       card.characterId = type.id;
       card.type = type;
-      card.on("pointerdown", () => this.tryDeployById(card.characterId));
+      card.clickLayer = clickLayer;
       card.cooldownMask = cooldownMask;
       card.readyAt = 0;
       return card;
@@ -550,18 +551,23 @@ class LaneBattleScene extends Phaser.Scene {
     const sprite = this.makeActorVisual(config);
     const hitRadius = config.side === "unit" ? UNIT_HIT_RADIUS : config.radius || 22;
     const isLargeEnemy = config.side === "enemy" && config.radius >= 40;
+    const shouldShowName = !(config.typeId === "typhoon01" || config.typeId === "typhoon02");
     const hpBarY = config.side === "unit" ? -UNIT_IMAGE_SIZE - 10 : isLargeEnemy ? -88 : -43;
     const hpBarWidth = config.side === "unit" ? 132 : isLargeEnemy ? 110 : 48;
-    const nameText = this.add.text(0, hpBarY - 26, config.displayName, {
-      fontSize: config.side === "unit" ? "20px" : isLargeEnemy ? "18px" : "13px",
-      color: "#ffffff",
-      fontStyle: "bold",
-      stroke: "#0f172a",
-      strokeThickness: 4,
-    });
-    nameText.setOrigin(0.5);
     const hpBar = this.makeHpBar(0, hpBarY, hpBarWidth, 6);
-    const container = this.add.container(config.x, y, [sprite, nameText, hpBar.back, hpBar.fill]);
+    const actorParts = [sprite, hpBar.back, hpBar.fill];
+    if (shouldShowName) {
+      const nameText = this.add.text(0, hpBarY - 26, config.displayName, {
+        fontSize: config.side === "unit" ? "20px" : isLargeEnemy ? "18px" : "13px",
+        color: "#ffffff",
+        fontStyle: "bold",
+        stroke: "#0f172a",
+        strokeThickness: 4,
+      });
+      nameText.setOrigin(0.5);
+      actorParts.splice(1, 0, nameText);
+    }
+    const container = this.add.container(config.x, y, actorParts);
     container.setDepth(20 + Math.round(y));
 
     return {
@@ -697,6 +703,9 @@ class LaneBattleScene extends Phaser.Scene {
   }
 
   getActorDamage(actor) {
+    if (actor.oneShot && actor.target?.alive) {
+      return actor.target.hp;
+    }
     const boosted = actor.side === "unit" && this.time.now < actor.damageBoostUntil;
     return boosted ? Math.round(actor.damage * 1.35) : actor.damage;
   }

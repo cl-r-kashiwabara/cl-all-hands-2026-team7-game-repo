@@ -93,6 +93,7 @@ pnpm build
 ```text
 public/assets/enemies/taihu01.png
 public/assets/enemies/taihu02.png
+public/assets/enemies/taifu_base.png
 public/assets/enemies/rain.png
 public/assets/enemies/gust.png
 public/assets/enemies/thunder.png
@@ -105,7 +106,7 @@ public/assets/characters/kasshi.png
 public/assets/characters/jumatsu.png
 
 public/assets/backgrounds/11317783i.png
-public/assets/bases/miyakojima_base.png
+public/assets/bases/miyako.png
 ```
 
 ## 山田専用効果音の配置先
