@@ -1,0 +1,15 @@
+{
+  "name": "宮古島防衛戦線",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "game",
+  "workspaceFolder": "/workspace",
+  "forwardPorts": [5173],
+  "postCreateCommand": "pnpm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint"
+      ]
+    }
+  }
+}
