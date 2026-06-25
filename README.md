@@ -98,9 +98,19 @@ public/assets/characters/yamada.png
 public/assets/characters/fuki.png
 public/assets/characters/yuta.png
 public/assets/characters/shige.png
-public/assets/characters/kasshy.png
+public/assets/characters/kasshi.png
 public/assets/characters/jumatsu.png
 
 public/assets/backgrounds/miyakojima_stage.png
 public/assets/bases/miyakojima_base.png
+```
+
+## 山田専用効果音の配置先
+
+山田だけ、出撃・攻撃・被弾時に専用効果音を再生します。次の3つの M4A ファイルを置いてください。
+
+```text
+public/assets/sounds/characters/ikuze.m4a
+public/assets/sounds/characters/ei.m4a
+public/assets/sounds/characters/u.m4a
 ```

@@ -24,6 +24,20 @@ const CHARACTER_TYPES = [
     name: "山田",
     role: "壁役",
     imagePath: "/assets/characters/yamada.png",
+    sounds: {
+      deploy: {
+        key: "yamadaDeploy",
+        path: "/assets/sounds/characters/ikuze.m4a",
+      },
+      attack: {
+        key: "yamadaAttack",
+        path: "/assets/sounds/characters/ei.m4a",
+      },
+      hit: {
+        key: "yamadaHit",
+        path: "/assets/sounds/characters/u.m4a",
+      },
+    },
     cost: 80,
     cooldown: 1600,
     hp: 190,
@@ -84,7 +98,7 @@ const CHARACTER_TYPES = [
     id: "captain",
     name: "かっしー",
     role: "支援",
-    imagePath: "/assets/characters/kasshy.png",
+    imagePath: "/assets/characters/kasshi.png",
     cost: 360,
     cooldown: 7200,
     hp: 150,
@@ -218,6 +232,11 @@ class LaneBattleScene extends Phaser.Scene {
     this.load.image("playerBase", ASSET_PATHS.playerBase);
     for (const type of CHARACTER_TYPES) {
       this.load.image(type.id, type.imagePath);
+      if (type.sounds) {
+        for (const sound of Object.values(type.sounds)) {
+          this.load.audio(sound.key, sound.path);
+        }
+      }
     }
   }
 
@@ -454,6 +473,7 @@ class LaneBattleScene extends Phaser.Scene {
       displayName: type.name,
     });
     this.units.push(actor);
+    this.playActorSound(actor, "deploy");
     this.showMessage(`${type.name} 出撃！`);
   }
 
@@ -562,6 +582,7 @@ class LaneBattleScene extends Phaser.Scene {
   }
 
   attack(actor, target) {
+    this.playActorSound(actor, "attack");
     this.tweens.add({
       targets: actor.container,
       x: actor.container.x + actor.direction * 10,
@@ -612,6 +633,16 @@ class LaneBattleScene extends Phaser.Scene {
     return boosted ? Math.round(actor.damage * 1.35) : actor.damage;
   }
 
+  playActorSound(actor, eventName) {
+    const soundConfig = actor.sounds?.[eventName];
+    if (!soundConfig || !this.cache.audio.exists(soundConfig.key)) {
+      return;
+    }
+    this.sound.play(soundConfig.key, {
+      volume: eventName === "hit" ? 0.65 : 0.8,
+    });
+  }
+
   applyCaptainAura(actor) {
     if (actor.side !== "unit" || !actor.aura) {
       return;
@@ -631,6 +662,7 @@ class LaneBattleScene extends Phaser.Scene {
   }
 
   damageActor(actor, amount) {
+    this.playActorSound(actor, "hit");
     actor.hp -= amount;
     actor.hpBar.fill.width = Math.max(0, (actor.hp / actor.maxHp) * actor.hpBar.width);
     if (actor.hp <= 0) {
