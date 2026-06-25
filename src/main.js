@@ -12,10 +12,11 @@ const UNIT_IMAGE_SIZE = 162;
 const UNIT_HIT_RADIUS = 66;
 
 const ASSET_PATHS = {
-  background: "/assets/backgrounds/miyakojima_stage.png",
+  background: "/assets/backgrounds/11317783i.png",
   typhoon01: "/assets/enemies/taihu01.png",
   typhoon02: "/assets/enemies/taihu02.png",
   playerBase: "/assets/bases/miyakojima_base.png",
+  bgm: "/assets/sounds/bgm/沖縄風BGM.mp3",
 };
 
 const CHARACTER_TYPES = [
@@ -52,7 +53,7 @@ const CHARACTER_TYPES = [
     id: "runner",
     name: "ふき",
     role: "速攻",
-    imagePath: "/assets/characters/fuki.png",
+    imagePath: "/assets/characters/huki.png",
     cost: 120,
     cooldown: 2200,
     hp: 95,
@@ -84,6 +85,12 @@ const CHARACTER_TYPES = [
     name: "しげ",
     role: "高火力",
     imagePath: "/assets/characters/shige.png",
+    sounds: {
+      deploy: {
+        key: "shigeAction",
+        path: "/assets/sounds/characters/shige_action.mp3",
+      },
+    },
     cost: 280,
     cooldown: 5000,
     hp: 260,
@@ -115,6 +122,16 @@ const CHARACTER_TYPES = [
     name: "十松",
     role: "支援",
     imagePath: "/assets/characters/jumatsu.png",
+    sounds: {
+      deploy: {
+        key: "jumatsuAction",
+        path: "/assets/sounds/characters/jumatsu_action.m4a",
+      },
+      attack: {
+        key: "jumatsuAction",
+        path: "/assets/sounds/characters/jumatsu_action.m4a",
+      },
+    },
     cost: 240,
     cooldown: 5200,
     hp: 120,
@@ -130,7 +147,8 @@ const CHARACTER_TYPES = [
 
 const ENEMY_TYPES = {
   drop: {
-    name: "雨粒",
+    name: "雨",
+    imagePath: "/assets/enemies/rain.png",
     hp: 80,
     damage: 12,
     range: 30,
@@ -142,6 +160,7 @@ const ENEMY_TYPES = {
   },
   gust: {
     name: "突風",
+    imagePath: "/assets/enemies/gust.png",
     hp: 62,
     damage: 18,
     range: 28,
@@ -152,7 +171,8 @@ const ENEMY_TYPES = {
     radius: 16,
   },
   cloud: {
-    name: "雷雲",
+    name: "雷",
+    imagePath: "/assets/enemies/thunder.png",
     hp: 260,
     damage: 34,
     range: 42,
@@ -189,22 +209,14 @@ const ENEMY_TYPES = {
 const SPAWN_PLAN = [
   { at: 1200, type: "typhoon01" },
   { at: 2600, type: "drop" },
-  { at: 4300, type: "drop" },
   { at: 6800, type: "gust" },
-  { at: 8500, type: "drop" },
   { at: 10800, type: "cloud" },
   { at: 12800, type: "drop" },
-  { at: 14500, type: "gust" },
   { at: 16200, type: "gust" },
-  { at: 19000, type: "cloud" },
   { at: 21800, type: "drop" },
-  { at: 23600, type: "drop" },
   { at: 25800, type: "gust" },
   { at: 28600, type: "cloud" },
-  { at: 33000, type: "cloud" },
-  { at: 36200, type: "gust" },
   { at: 38200, type: "cloud" },
-  { at: 41000, type: "drop" },
   { at: 43000, type: "gust" },
 ];
 
@@ -229,22 +241,38 @@ class LaneBattleScene extends Phaser.Scene {
     this.load.image("background", ASSET_PATHS.background);
     this.load.image("typhoon01", ASSET_PATHS.typhoon01);
     this.load.image("typhoon02", ASSET_PATHS.typhoon02);
-    this.load.image("playerBase", ASSET_PATHS.playerBase);
-    for (const type of CHARACTER_TYPES) {
-      this.load.image(type.id, type.imagePath);
-      if (type.sounds) {
-        for (const sound of Object.values(type.sounds)) {
-          this.load.audio(sound.key, sound.path);
-        }
-      }
-    }
   }
 
   create() {
     this.createField();
     this.createHud();
-    this.createCards();
+    this.loadSmallEnemyImages();
+    this.loadCharacterImages();
+    this.setupBackgroundMusic();
+    this.time.delayedCall(1500, () => {
+      if (!this.characterCardsCreated) {
+        this.createCards();
+      }
+    });
     this.showMessage("下のカードをクリックして、守くん風キャラを出撃させよう");
+  }
+
+  setupBackgroundMusic() {
+    this.bgm = new Audio(ASSET_PATHS.bgm);
+    this.bgm.loop = true;
+    this.bgm.volume = 0.35;
+
+    const startBgm = () => {
+      if (!this.bgm || !this.bgm.paused) {
+        return;
+      }
+      this.bgm.play().catch(() => {
+        // BGMファイル未配置やブラウザ制限時はゲーム進行を優先します。
+      });
+    };
+
+    this.input.once("pointerdown", startBgm);
+    this.input.keyboard?.once("keydown", startBgm);
   }
 
   update(time, delta) {
@@ -279,8 +307,8 @@ class LaneBattleScene extends Phaser.Scene {
     this.enemyBase = this.add.container(ENEMY_BASE_X, GROUND_Y - 80);
     const eye = this.add.circle(0, 0, 44, 0x7e22ce);
     eye.setStrokeStyle(5, 0xe9d5ff);
-    const swirl = this.add.text(0, -21, "台風\n発生源", {
-      fontSize: "17px",
+    const swirl = this.add.text(0, -28, "台風7号\n(メーカラー)", {
+      fontSize: "15px",
       color: "#ffffff",
       align: "center",
       fontStyle: "bold",
@@ -339,6 +367,10 @@ class LaneBattleScene extends Phaser.Scene {
   }
 
   createCards() {
+    if (this.characterCardsCreated) {
+      return;
+    }
+    this.characterCardsCreated = true;
     this.add.rectangle(WIDTH / 2, FIELD_HEIGHT + UI_HEIGHT / 2, WIDTH, UI_HEIGHT, 0x111827);
     this.add.text(18, FIELD_HEIGHT + 10, "守くん風キャラ出撃メニュー", {
       fontSize: "18px",
@@ -390,6 +422,39 @@ class LaneBattleScene extends Phaser.Scene {
     });
   }
 
+  loadCharacterImages() {
+    const unloadedTypes = CHARACTER_TYPES.filter((type) => !this.textures.exists(type.id));
+    if (unloadedTypes.length === 0) {
+      this.createCards();
+      return;
+    }
+
+    this.load.once("complete", () => {
+      if (!this.characterCardsCreated) {
+        this.createCards();
+      }
+    });
+    for (const type of unloadedTypes) {
+      this.load.image(type.id, type.imagePath);
+    }
+    this.load.start();
+  }
+
+  loadSmallEnemyImages() {
+    for (const [typeId, type] of Object.entries(ENEMY_TYPES)) {
+      if (!type.imagePath || this.textures.exists(typeId)) {
+        continue;
+      }
+      const image = new Image();
+      image.onload = () => {
+        if (!this.textures.exists(typeId)) {
+          this.textures.addImage(typeId, image);
+        }
+      };
+      image.src = type.imagePath;
+    }
+  }
+
   makePortrait(type, x, y, radius) {
     if (this.textures.exists(type.id)) {
       const image = this.add.image(x, y, type.id);
@@ -432,7 +497,10 @@ class LaneBattleScene extends Phaser.Scene {
       x: ENEMY_BASE_X + 58,
       direction: 1,
       baseTargetX: PLAYER_BASE_X - 72,
-      imageKey: typeId === "typhoon01" || typeId === "typhoon02" ? typeId : null,
+      imageKey:
+        typeId === "typhoon01" || typeId === "typhoon02" || this.textures.exists(typeId)
+          ? typeId
+          : null,
       displayName: type.name,
       typeId,
     });
@@ -635,11 +703,13 @@ class LaneBattleScene extends Phaser.Scene {
 
   playActorSound(actor, eventName) {
     const soundConfig = actor.sounds?.[eventName];
-    if (!soundConfig || !this.cache.audio.exists(soundConfig.key)) {
+    if (!soundConfig) {
       return;
     }
-    this.sound.play(soundConfig.key, {
-      volume: eventName === "hit" ? 0.65 : 0.8,
+    const audio = new Audio(soundConfig.path);
+    audio.volume = eventName === "hit" ? 0.65 : 0.8;
+    audio.play().catch(() => {
+      // Browser autoplay policies can reject playback before the first user gesture.
     });
   }
 

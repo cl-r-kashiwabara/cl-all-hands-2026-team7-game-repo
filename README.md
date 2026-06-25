@@ -93,15 +93,18 @@ pnpm build
 ```text
 public/assets/enemies/taihu01.png
 public/assets/enemies/taihu02.png
+public/assets/enemies/rain.png
+public/assets/enemies/gust.png
+public/assets/enemies/thunder.png
 
 public/assets/characters/yamada.png
-public/assets/characters/fuki.png
+public/assets/characters/huki.png
 public/assets/characters/yuta.png
 public/assets/characters/shige.png
 public/assets/characters/kasshi.png
 public/assets/characters/jumatsu.png
 
-public/assets/backgrounds/miyakojima_stage.png
+public/assets/backgrounds/11317783i.png
 public/assets/bases/miyakojima_base.png
 ```
 
@@ -113,4 +116,28 @@ public/assets/bases/miyakojima_base.png
 public/assets/sounds/characters/ikuze.m4a
 public/assets/sounds/characters/ei.m4a
 public/assets/sounds/characters/u.m4a
+```
+
+## 十松専用効果音の配置先
+
+十松は出撃時と攻撃時に同じ効果音を再生します。次の M4A ファイルを置いてください。
+
+```text
+public/assets/sounds/characters/jumatsu_action.m4a
+```
+
+## しげ専用効果音の配置先
+
+しげは出撃時に効果音を再生します。次の MP3 ファイルを置いてください。
+
+```text
+public/assets/sounds/characters/shige_action.mp3
+```
+
+## BGM の配置先
+
+ゲーム中にループ再生するBGMは、次のファイル名で置いてください。ブラウザの自動再生制限に合わせて、最初のクリックまたはキー入力後に再生されます。
+
+```text
+public/assets/sounds/bgm/沖縄風BGM.mp3
 ```
